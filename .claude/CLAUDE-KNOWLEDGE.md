@@ -217,6 +217,9 @@ A: Check the error location:
 - Callback endpoint (400 error) - Validation failed during callback
 - Token endpoint (400 error) - Validation failed during token exchange
 
+### Q: How should connected-account OAuth access-token refresh errors be classified?
+A: In `apps/backend/src/oauth/providers/base.tsx`, invalid/revoked refresh-token provider errors such as `invalid_grant` return `Result.error({ type: "invalid-refresh-token", ... })` so `access-token-helpers.tsx` can invalidate that stored refresh token and try another. Transient provider/network failures such as openid-client `RPError: outgoing request timed out after 3500ms` return `Result.error({ type: "temporarily-unavailable", cause })`; the connected-account helper converts that to `OAuthProviderTemporarilyUnavailable` without invalidating the refresh token. Expected refresh outcomes should be represented in the provider return type instead of thrown as known/status errors. Refresh requests use a 6s openid-client HTTP timeout and retry transient failures once. If a retry sees `invalid_grant` after an ambiguous transient failure, keep treating it as temporarily unavailable rather than invalidating the refresh token, because the first request may have reached the provider and rotated the token before our client timed out. Sentry should capture non-revocation refresh issues (temporary provider failure, invalid client, unexpected) with provider id/class, attempts, retry count, ambiguity state, final cause, and all provider errors seen during attempts; normal revoked/expired refresh tokens should not be reported.
+
 ## Git and Development Workflow
 
 ### Q: How should you format git commit messages in this project?
