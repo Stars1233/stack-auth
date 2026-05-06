@@ -41,7 +41,7 @@
     "clean": "rimraf dist && rimraf node_modules",
     "lint": "eslint --ext .tsx,.ts .",
     "build": "rimraf dist && pnpm run css && tsdown",
-    "dev": "rimraf dist && concurrently -n \"build,codegen\" -k \"tsdown --watch\" \"pnpm run codegen:watch\"",
+    "dev": "concurrently -n \"build,codegen\" -k \"tsdown --watch\" \"pnpm run codegen:watch\"",
     "codegen": "pnpm run css",
     "codegen:watch": "pnpm run css:watch",
     "css": "pnpm run css-tw && pnpm run css-sc",

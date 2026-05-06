@@ -41,7 +41,7 @@
     "clean": "rimraf dist && rimraf node_modules",
     "lint": "eslint --ext .tsx,.ts .",
     "build": "rimraf dist && tsdown",
-    "dev": "rimraf dist && tsdown --watch"
+    "dev": "tsdown --watch"
   },
   "files": [
     "README.md",

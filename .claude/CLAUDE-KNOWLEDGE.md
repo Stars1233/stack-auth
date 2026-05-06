@@ -391,3 +391,6 @@ A: The `/api/v1/internal/metrics` response now intentionally includes `analytics
 
 ## Q: Why can environment config override writes fail with a product/product-line customer type warning after creating a preview project?
 A: The environment override endpoint validates the new environment override against the rendered branch config. Preview dummy payments data must therefore be internally coherent: products assigned to a product line need the same `customerType` as that product line, otherwise unrelated environment patches can fail with warnings like `Product "growth" has customer type "user" but its product line "workspace" has customer type "team"`.
+
+## Q: Why can `pnpm run dev` fail with `ERR_MODULE_NOT_FOUND` for `@stackframe/stack/dist/esm/index.js` during OpenAPI docs generation?
+A: Root `dev` starts the OpenAPI docs watcher at the same time as package `dev` watchers. If a package `dev` script removes `dist` before `tsdown --watch` recreates it, the docs generator can import `apps/backend/src/stack.tsx` while `@stackframe/stack`'s ESM entrypoint is temporarily missing. Package watch scripts should update `dist` in place, and eager generators should wait for package imports to resolve before running.
