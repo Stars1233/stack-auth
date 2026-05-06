@@ -394,3 +394,6 @@ A: The environment override endpoint validates the new environment override agai
 
 ## Q: Why can `pnpm run dev` fail with `ERR_MODULE_NOT_FOUND` for `@stackframe/stack/dist/esm/index.js` during OpenAPI docs generation?
 A: Root `dev` starts the OpenAPI docs watcher at the same time as package `dev` watchers. If a package `dev` script removes `dist` before `tsdown --watch` recreates it, the docs generator can import `apps/backend/src/stack.tsx` while `@stackframe/stack`'s ESM entrypoint is temporarily missing. Package watch scripts should update `dist` in place, and eager generators should wait for package imports to resolve before running.
+
+## Q: How do SDK source tests replace the compile-time client version sentinel?
+A: `packages/template/vitest.config.ts` installs a Vite transform plugin for Vitest that replaces `STACK_COMPILE_TIME_CLIENT_PACKAGE_VERSION_SENTINEL` with `js <package-name>@<version>` from the local package.json. Keep the plugin in `packages/template` so `pnpm pre`/`scripts/generate-sdks.ts` propagates it to `packages/js`, `packages/react`, and `packages/stack`; otherwise tests importing `common.ts` throw `Client version was not replaced` before test collection.
