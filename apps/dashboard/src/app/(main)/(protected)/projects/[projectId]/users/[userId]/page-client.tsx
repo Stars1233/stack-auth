@@ -49,11 +49,14 @@ import { fromNow } from "@stackframe/stack-shared/dist/utils/dates";
 import { StackAssertionError, throwErr } from '@stackframe/stack-shared/dist/utils/errors';
 import { runAsynchronouslyWithAlert } from "@stackframe/stack-shared/dist/utils/promises";
 import { deindent } from "@stackframe/stack-shared/dist/utils/strings";
+import { urlString } from "@stackframe/stack-shared/dist/utils/urls";
+import { CountryCodeInput } from "@/components/country-code-select";
 import { Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
 import * as yup from "yup";
 import { AppEnabledGuard } from "../../app-enabled-guard";
 import { PageLayout } from "../../page-layout";
 import { useAdminApp } from "../../use-admin-app";
+import { useRouter } from "@/components/router";
 import { UserAnalyticsSection } from "./user-analytics";
 import { UserPageTableSection } from "./user-page-table-section";
 import { UserPaymentsSection } from "./user-payments";
@@ -92,6 +95,7 @@ function UserHeader({ user }: UserHeaderProps) {
   const [restrictionDialogOpen, setRestrictionDialogOpen] = useState(false);
   const [impersonateSnippet, setImpersonateSnippet] = useState<string | null>(null);
   const stackAdminApp = useAdminApp();
+  const router = useRouter();
 
   return (
     <div className="flex min-w-0 flex-1 gap-4 items-center">
@@ -111,7 +115,13 @@ function UserHeader({ user }: UserHeaderProps) {
           }}/>
         <p>Last active {fromNow(user.lastActiveAt)}</p>
       </div>
-      <div className="shrink-0 mr-8">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={() => router.push(`${urlString`/projects/${stackAdminApp.projectId}/conversations`}?userId=${encodeURIComponent(user.id)}`)}
+        >
+          Support
+        </Button>
         <DesignMenu
           variant="actions"
           trigger="icon"
@@ -128,7 +138,7 @@ function UserHeader({ user }: UserHeaderProps) {
                   const session = await user.createSession({ expiresInMillis });
                   const tokens = await session.getTokens();
                   setImpersonateSnippet(deindent`
-                    document.cookie = 'stack-refresh-${stackAdminApp.projectId}=${tokens.refreshToken}; expires=${expiresAtDate.toUTCString()}; path=/'; 
+                    document.cookie = 'stack-refresh-${stackAdminApp.projectId}=${tokens.refreshToken}; expires=${expiresAtDate.toUTCString()}; path=/';
                     window.location.reload();
                   `);
                 });
