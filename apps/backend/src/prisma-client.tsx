@@ -162,12 +162,8 @@ async function resolveConnectionStringWithOrbStack(connectionString: string): Pr
   return connectionString;
 }
 
-// We disable the OrbStack-based hacks as there is currently a Next.js 16.2 bug that does not allow "type": "module" in the package.json.
-// TODO: Once we've upgraded to Next.js 16.2.7+, we can add "type": "module" to the package.json and uncomment this again for faster OrbStack-based development
-// let actualGlobalConnectionString: string = globalVar.__stack_actual_global_connection_string ??= await resolveConnectionStringWithOrbStack(originalGlobalConnectionString);
-// let actualReplicaConnectionString: string = globalVar.__stack_actual_replica_connection_string ??= await resolveConnectionStringWithOrbStack(originalReplicaConnectionString);
-const actualGlobalConnectionString = globalVar.__stack_actual_global_connection_string ??= originalGlobalConnectionString;
-const actualReplicaConnectionString = globalVar.__stack_actual_replica_connection_string ??= originalReplicaConnectionString;
+let actualGlobalConnectionString: string = globalVar.__stack_actual_global_connection_string ??= await resolveConnectionStringWithOrbStack(originalGlobalConnectionString);
+let actualReplicaConnectionString: string = globalVar.__stack_actual_replica_connection_string ??= await resolveConnectionStringWithOrbStack(originalReplicaConnectionString);
 
 export type PrismaClientWithReplica<T extends PrismaClient = PrismaClient> = Omit<T, "$on"> & {
   $replica: () => Omit<T, "$on">,
