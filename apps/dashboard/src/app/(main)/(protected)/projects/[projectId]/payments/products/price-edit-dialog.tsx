@@ -26,7 +26,20 @@ import { ClockIcon, HardDriveIcon } from "@phosphor-icons/react";
 import type { DayInterval } from "@stackframe/stack-shared/dist/utils/dates";
 import { runAsynchronouslyWithAlert } from "@stackframe/stack-shared/dist/utils/promises";
 import { useState } from "react";
-import { DEFAULT_INTERVAL_UNITS, PRICE_INTERVAL_UNITS, type Price } from "./utils";
+import { DEFAULT_INTERVAL_UNITS, getPriceCheckoutError, PRICE_INTERVAL_UNITS, type Price } from "./utils";
+
+/**
+ * Validates the form's editing state. Catches form-only issues here (empty
+ * input) and delegates the rest to `getPriceCheckoutError`, which is the same
+ * validator used to flag already-saved prices on the products page — so the
+ * dialog and the warning banners can't disagree.
+ */
+function validateEditingPriceAmount(editing: EditingPrice): string | null {
+  if (editing.amount === '' || Number.isNaN(Number(editing.amount))) {
+    return "Enter a price";
+  }
+  return getPriceCheckoutError(editingPriceToPrice(editing));
+}
 
 export type EditingPrice = {
   priceId: string,
@@ -65,6 +78,8 @@ export function PriceEditDialog({
     onEditingPriceChange(null);
     onOpenChange(false);
   };
+
+  const amountError = editingPrice ? validateEditingPriceAmount(editingPrice) : null;
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
@@ -121,6 +136,9 @@ export function PriceEditDialog({
                 onIntervalUnitChange={(v) => onEditingPriceChange({ ...editingPrice, priceInterval: v })}
                 allowedUnits={PRICE_INTERVAL_UNITS}
               />
+              {amountError && (
+                <p className="text-xs text-destructive">{amountError}</p>
+              )}
             </div>
 
             {/* Free Trial & Server Only as EditableGrid */}
@@ -236,7 +254,10 @@ export function PriceEditDialog({
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={editingPrice ? () => runAsynchronouslyWithAlert(() => onSave(editingPrice, isAdding)) : undefined}>
+          <Button
+            disabled={!editingPrice || amountError !== null}
+            onClick={editingPrice && amountError === null ? () => runAsynchronouslyWithAlert(() => onSave(editingPrice, isAdding)) : undefined}
+          >
             {isAdding ? "Add Price" : "Save Changes"}
           </Button>
         </DialogFooter>
