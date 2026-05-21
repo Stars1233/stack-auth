@@ -166,7 +166,7 @@ export const GET = createSmartRouteHandler({
       [totalRows, signupRows] = await Promise.all([
         totalResult.json(),
         signupResult.json(),
-      ]);
+      ]) as any;
     } catch (cause) {
       throw new StackAssertionError("Failed to load project metrics.", {
         cause,
