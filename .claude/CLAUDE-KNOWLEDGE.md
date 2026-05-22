@@ -535,3 +535,6 @@ A: The workflow needs a full checkout using the fine-grained `NPM_PUBLISH_VERSIO
 
 ## Q: How should the Mintlify docs homepage reuse the generated setup prompt?
 A: Import `generatedSetupPromptText` from `docs-mintlify/snippets/home-prompt-island.jsx` in `docs-mintlify/index.mdx`, render it directly in a `<pre><code>{generatedSetupPromptText}</code></pre>` block, and keep the home copy button wired to that imported value. Clipboard failures can happen when the browser document is not focused, so the button should surface the actual error text instead of only saying "Copy failed".
+
+## Q: Where should Mintlify docs for restricted users live?
+A: Put restricted-user docs at `docs-mintlify/guides/apps/authentication/restricted-users.mdx` and register the page in the Authentication group in `docs-mintlify/docs.json`. The page should cover `includeRestricted: true`, `user.isRestricted`, `user.restrictedReason`, anonymous users being restricted by definition, and JWKS `include_restricted=true` for services that intentionally accept restricted-user tokens.
