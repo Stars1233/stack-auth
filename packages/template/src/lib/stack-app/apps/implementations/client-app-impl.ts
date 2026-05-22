@@ -56,7 +56,7 @@ import { NotificationCategory } from "../../notification-categories";
 import { TeamPermission } from "../../permissions";
 import { AdminOwnedProject, AdminProjectUpdateOptions, Project, adminProjectCreateOptionsToCrud } from "../../projects";
 import { EditableTeamMemberProfile, ReceivedTeamInvitation, SentTeamInvitation, Team, TeamCreateOptions, TeamUpdateOptions, TeamUser, teamCreateOptionsToCrud, teamUpdateOptionsToCrud } from "../../teams";
-import { buildCliAuthConfirmUrl, isHostedHandlerUrlForProject, resolveHandlerUrls } from "../../url-targets";
+import { buildCliAuthConfirmUrl, getHostedHandlerUrl, isHostedHandlerUrlForProject, resolveHandlerUrls } from "../../url-targets";
 import { ActiveSession, Auth, BaseUser, CurrentUser, InternalUserExtra, OAuthProvider, ProjectCurrentUser, SyncedPartialUser, TokenPartialUser, UserExtra, UserUpdateOptions, userUpdateOptionsToCrud, withUserDestructureGuard } from "../../users";
 import { StackClientApp, StackClientAppConstructorOptions, StackClientAppJson } from "../interfaces/client-app";
 import { _StackAdminAppImplIncomplete } from "./admin-app-impl";
@@ -1190,7 +1190,10 @@ export class _StackClientAppImplIncomplete<HasTokenStore extends boolean, Projec
     const project = Result.orThrow(await this._currentProjectCache.getOrWait([], "write-only"));
     return {
       allowLocalhost: project.config.allow_localhost,
-      trustedDomains: project.config.domains.map(d => d.domain),
+      trustedDomains: [
+        ...project.config.domains.map(d => d.domain),
+        new URL(getHostedHandlerUrl({ projectId: this.projectId, pagePath: "" })).origin,
+      ],
     };
   }
 
