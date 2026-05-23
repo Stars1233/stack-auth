@@ -12,3 +12,13 @@ export const signUpRiskEngine: SignUpRiskEngine = {
 };
 
 export const preprocessProxyBody: AiProxyBodyProcessor = ({ parsedBody }) => parsedBody;
+
+export async function checkSmtpEgressPolicy(options: {
+  host: string,
+  port: number,
+}) {
+  return {
+    status: "ok" as const,
+    addresses: [options.host],
+  };
+}
