@@ -28,15 +28,10 @@ export function checkClientVersion(options: {
 }): VersionCheckResult {
   const clientPackageName = options.clientPackageName;
 
-  if (clientPackageName == null) {
-    return err(true, `This client is using an older version-check protocol from the deprecated @stackframe/* packages. Please migrate to the equivalent @hexclave/* package as soon as possible to keep receiving security updates.`);
+  if (clientPackageName == null || !clientPackageName.startsWith("@hexclave/")) {
+    return err(true, `You are running an old version of Stack Auth.\n\nStack Auth is rebranding to Hexclave! Please see the instructions on how to migrate your project: https://docs.hexclave.com/migration`);
   }
-  if (clientPackageName.startsWith("@stackframe/")) {
-    return err(true, `The ${clientPackageName} package is deprecated. Please migrate to the equivalent @hexclave/* package as soon as possible to keep receiving security updates.`);
-  }
-  if (!clientPackageName.startsWith("@hexclave/")) {
-    return err(true, `The version check endpoint only compares @hexclave/* package versions. Received ${clientPackageName}. Please install the equivalent @hexclave/* package.`);
-  }
+
 
   const clientVersion = options.clientVersion;
   if (!semver.valid(clientVersion)) return err(true, `The client version you specified (v${clientVersion}) is not a valid semver version. Please update to the latest version as soon as possible to ensure that you get the latest feature and security updates.`);
