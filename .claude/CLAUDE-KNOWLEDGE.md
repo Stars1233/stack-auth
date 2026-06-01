@@ -589,3 +589,9 @@ A: The dashboard has real local API endpoints such as `/api/remote-development-e
 
 ## Q: How should RDE session registration report an unreachable backend?
 A: Do not let SDK network errors escape the local dashboard route as an empty Next.js 500. Classify expected API connection failures such as `ECONNREFUSED`/`fetch failed`, return a sanitized `503` JSON error naming the configured API base URL, and have the CLI parse JSON error bodies so users see the actual cause instead of `Failed to register ... (500):`.
+
+## Q: Which dashboard files control the Hexclave logo in light and dark mode?
+A: `apps/dashboard/src/components/logo.tsx` chooses `apps/dashboard/public/logo.svg` and `logo-full.svg` for light mode, and `logo-bright.svg` and `logo-full-bright.svg` for dark mode. The light-mode assets can be changed independently without affecting the dark-mode neon logo.
+
+## Q: Why did the user/team detail page "Install apps" action sit at the far right of the tab bar?
+A: `DesignCategoryTabs` in `packages/dashboard-ui-components/src/components/tabs.tsx` rendered tab buttons in a `flex-1` scroll container, so the trailing slot was pushed to the far right of the full row. Removing `flex-1` keeps trailing actions directly after the visible tabs while preserving horizontal scrolling through `min-w-0 overflow-x-auto`.
