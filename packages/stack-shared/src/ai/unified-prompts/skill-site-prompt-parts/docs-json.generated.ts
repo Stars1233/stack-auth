@@ -80,6 +80,8 @@ const docsJson = {
               "guides/going-further/stack-app",
               "guides/going-further/backend-integration",
               "guides/going-further/cli",
+              "guides/going-further/local-vs-cloud-dashboard",
+              "guides/going-further/hexclave-config",
               "guides/going-further/user-metadata"
             ]
           },
