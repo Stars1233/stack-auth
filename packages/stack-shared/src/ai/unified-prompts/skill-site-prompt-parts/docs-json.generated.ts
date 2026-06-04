@@ -77,7 +77,6 @@ const docsJson = {
           {
             "group": "Going Further",
             "pages": [
-              "guides/going-further/backend-integration",
               "guides/going-further/cli",
               "guides/going-further/local-vs-cloud-dashboard",
               "guides/going-further/hexclave-config"
@@ -308,6 +307,10 @@ const docsJson = {
     {
       "source": "/guides/going-further/stack-app",
       "destination": "/sdk/objects/stack-app"
+    },
+    {
+      "source": "/guides/going-further/backend-integration",
+      "destination": "/guides/getting-started/setup"
     }
   ]
 } as const;
