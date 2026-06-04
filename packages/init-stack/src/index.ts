@@ -99,7 +99,7 @@ program
   .option("--on-question <mode>", "How to handle interactive questions: ask | guess | error | default", "default")
   .option("--no-warn-uncommitted-changes", "Don't warn about uncommitted changes in the Git repository")
   .addHelpText('after', `
-For more information, please visit https://docs.hexclave.com/getting-started/setup`);
+For more information, please visit https://docs.hexclave.com/guides/getting-started/setup`);
 
 program.parse();
 
@@ -446,7 +446,7 @@ ${colorize.bold`Next steps:`}
 3. Import the Stack components in your app
 4. Add authentication to your app
 
-For more information, please visit https://docs.hexclave.com/getting-started/setup
+For more information, please visit https://docs.hexclave.com/guides/getting-started/setup
   `.trim());
   if (!noBrowser) {
     // Hexclave rebrand: emit the new query param name (hyphen delimiter preserved).
@@ -479,7 +479,7 @@ main().catch(async (err) => {
   console.log(colorize.red`===============================================`);
   console.error();
   console.error(
-    "If you need assistance, please try installing Stack manually as described in https://docs.hexclave.com/getting-started/setup or join our Discord where we're happy to help: https://discord.hexclave.com"
+    "If you need assistance, please try installing Stack manually as described in https://docs.hexclave.com/guides/getting-started/setup or join our Discord where we're happy to help: https://discord.hexclave.com"
   );
   if (!(err instanceof UserError)) {
     console.error("");
