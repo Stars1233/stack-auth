@@ -1,5 +1,4 @@
 # Hexclave
-
 <div align="center">
 
 <img src=".github/assets/hexclave-header.svg" alt="Hexclave" width="320"/>
