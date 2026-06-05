@@ -166,20 +166,35 @@ describe("StackClientApp cross-domain auth", () => {
     expect(redirectUri.searchParams.get("hexclave_cross_domain_after_callback_redirect_url")).toBe("https://demo.stack-auth.com/");
   });
 
-  it("routes hosted sign-out back through the source-domain sign-out handler", async () => {
+  it("clears a stale target-domain session before deferring to the source-domain session", async () => {
+    const projectId = "00000000-0000-4000-8000-000000000006";
+    const hostedAccessToken = createAccessTokenString("hosted-old-refresh-token-id");
     const clientApp = new StackClientApp({
       baseUrl: "http://localhost:12345",
-      projectId: "00000000-0000-4000-8000-000000000003",
+      projectId,
       publishableClientKey: "stack-pk-test",
       tokenStore: "memory",
       redirectMethod: "window",
       urls: {
-        handler: "/handler",
-        signOut: "https://hosted.example.test/handler/sign-out",
+        default: { type: "hosted" },
       },
       noAutomaticPrefetch: true,
     });
-    const currentHref = "https://demo.stack-auth.com/signed-in-page?foo=bar";
+    const tokenStore = Reflect.get(clientApp, "_memoryTokenStore");
+    if (!(tokenStore instanceof Store)) {
+      throw new Error("Expected StackClientApp to use a memory token store in this test.");
+    }
+    tokenStore.set({
+      refreshToken: "hosted-old-refresh-token",
+      accessToken: hostedAccessToken,
+    });
+
+    const currentUrl = new URL(`https://${projectId}.example-stack-hosted.test/handler/sign-in`);
+    currentUrl.searchParams.set("stack_nested_cross_domain_auth_refresh_token_id", "source-anonymous-refresh-token-id");
+    currentUrl.searchParams.set("stack_nested_cross_domain_auth_callback_url", "https://demo.stack-auth.com/handler/oauth-callback");
+    currentUrl.searchParams.set("hexclave_cross_domain_state", "outer-state");
+    currentUrl.searchParams.set("hexclave_cross_domain_code_challenge", "outer-code-challenge");
+    currentUrl.searchParams.set("hexclave_cross_domain_after_callback_redirect_url", "https://demo.stack-auth.com/app");
 
     const previousWindow = globalThis.window;
     const previousDocument = globalThis.document;
@@ -189,8 +204,8 @@ describe("StackClientApp cross-domain auth", () => {
     globalThis.document = createMockDocument();
     globalThis.window = {
       location: {
-        href: currentHref,
-        assign: (url: string) => {
+        href: currentUrl.toString(),
+        replace: (url: string) => {
           redirectedUrl = url;
           throw new Error("INTENTIONAL_TEST_ABORT");
         },
@@ -198,19 +213,40 @@ describe("StackClientApp cross-domain auth", () => {
     } as any;
 
     try {
-      await expect(clientApp.redirectToSignOut()).rejects.toThrowError("INTENTIONAL_TEST_ABORT");
+      await expect((clientApp as any)._maybeHandleNestedCrossDomainAuth()).rejects.toThrowError("INTENTIONAL_TEST_ABORT");
     } finally {
       globalThis.window = previousWindow;
       globalThis.document = previousDocument;
     }
 
-    const hostedSignOutUrl = new URL(redirectedUrl);
-    expect(hostedSignOutUrl.origin).toBe("https://hosted.example.test");
-    expect(hostedSignOutUrl.pathname).toBe("/handler/sign-out");
-    const sourceSignOutUrl = new URL(hostedSignOutUrl.searchParams.get("after_auth_return_to") ?? "");
-    expect(sourceSignOutUrl.origin).toBe("https://demo.stack-auth.com");
-    expect(sourceSignOutUrl.pathname).toBe("/handler/sign-out");
-    expect(sourceSignOutUrl.searchParams.get("after_auth_return_to")).toBe(currentHref);
+    expect(tokenStore.get()).toEqual({
+      refreshToken: null,
+      accessToken: null,
+    });
+    expect(new URL(redirectedUrl).origin).toBe("https://demo.stack-auth.com");
+  });
+
+  it("uses direct sign-out instead of hosted sign-out redirects when code execution is available", async () => {
+    const clientApp = new StackClientApp({
+      baseUrl: "http://localhost:12345",
+      projectId: "00000000-0000-4000-8000-000000000003",
+      publishableClientKey: "stack-pk-test",
+      tokenStore: "memory",
+      redirectMethod: "window",
+      urls: {
+        handler: "/handler",
+        signOut: { type: "hosted" },
+      },
+      noAutomaticPrefetch: true,
+    });
+    const signOutSpy = vi.spyOn(clientApp, "signOut").mockRejectedValue(new Error("INTENTIONAL_TEST_ABORT"));
+
+    try {
+      await expect(clientApp.redirectToSignOut()).rejects.toThrowError("INTENTIONAL_TEST_ABORT");
+      expect(signOutSpy).toHaveBeenCalledWith();
+    } finally {
+      signOutSpy.mockRestore();
+    }
   });
 
   it("keeps default hosted signOut() on the source domain when afterSignOut is not configured", async () => {

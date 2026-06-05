@@ -946,6 +946,10 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
     // shape; a.com will verify the source session and issue the one-time code.
     const currentRefreshTokenId = await this._getCurrentRefreshTokenIdIfSignedIn({ awaitPendingAuthResolutions: false });
     if (currentRefreshTokenId === refreshTokenId) return false;
+    if (currentRefreshTokenId != null) {
+      const session = await this._getSession(undefined, { awaitPendingAuthResolutions: false });
+      session.markInvalid();
+    }
     const callbackUrlString = currentUrl.searchParams.get(nestedCrossDomainAuthQueryParams.callbackUrl);
     if (callbackUrlString == null) {
       throw new HexclaveAssertionError("Nested cross-domain auth URL is missing callback URL");
@@ -2837,17 +2841,6 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
     }).oauthCallback;
   }
 
-  protected _getLocalSignOutHandlerUrl(): string {
-    return resolveHandlerUrls({
-      urls: {
-        ...this._urlOptions,
-        default: { type: "handler-component" },
-        signOut: { type: "handler-component" },
-      },
-      projectId: this.projectId,
-    }).signOut;
-  }
-
   protected async _createCrossDomainAuthRedirectUrl(options: {
     redirectUri: string,
     state: string,
@@ -2978,7 +2971,6 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
       noRedirectBack: options?.noRedirectBack === true,
       currentUrl,
       localOAuthCallbackUrl: this._getLocalOAuthCallbackHandlerUrl(),
-      localSignOutHandlerUrl: this._getLocalSignOutHandlerUrl(),
       getCrossDomainHandoffParams: async (href) => await this._getCrossDomainHandoffParamsForRedirect(href),
     });
 
@@ -3022,7 +3014,13 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
 
   async redirectToSignIn(options?: RedirectToOptions) { return await this._redirectToHandler("signIn", options); }
   async redirectToSignUp(options?: RedirectToOptions) { return await this._redirectToHandler("signUp", options); }
-  async redirectToSignOut(options?: RedirectToOptions) { return await this._redirectToHandler("signOut", options); }
+  async redirectToSignOut(options?: RedirectToOptions) {
+    const configuredSignOutTarget = this._urlOptions.signOut ?? this._urlOptions.default;
+    if (typeof configuredSignOutTarget !== "string" && configuredSignOutTarget?.type === "hosted") {
+      return await this.signOut();
+    }
+    return await this._redirectToHandler("signOut", options);
+  }
   async redirectToEmailVerification(options?: RedirectToOptions) { return await this._redirectToHandler("emailVerification", options); }
   async redirectToPasswordReset(options?: RedirectToOptions) { return await this._redirectToHandler("passwordReset", options); }
   async redirectToForgotPassword(options?: RedirectToOptions) { return await this._redirectToHandler("forgotPassword", options); }

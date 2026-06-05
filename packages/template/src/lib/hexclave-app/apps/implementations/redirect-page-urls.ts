@@ -94,7 +94,6 @@ function buildRedirectBackAwareHandlerUrl(options: {
   currentUrl: URL,
   crossDomainHandoffParams: CrossDomainHandoffParams | null,
   localOAuthCallbackUrl: string,
-  localSignOutHandlerUrl: string,
 }): string {
   const nextUrl = new URL(options.rawHandlerUrl, options.currentUrl);
   // Preserve after_auth_return_to verbatim (not a rebranded param).
@@ -114,9 +113,7 @@ function buildRedirectBackAwareHandlerUrl(options: {
       if (options.currentUrl.protocol === nextUrl.protocol && options.currentUrl.host === nextUrl.host) {
         nextUrl.searchParams.set("after_auth_return_to", getRelativePart(options.currentUrl));
       } else {
-        const sourceSignOutUrl = new URL(options.localSignOutHandlerUrl, options.currentUrl);
-        sourceSignOutUrl.searchParams.set("after_auth_return_to", options.currentUrl.toString());
-        nextUrl.searchParams.set("after_auth_return_to", sourceSignOutUrl.toString());
+        nextUrl.searchParams.set("after_auth_return_to", options.currentUrl.toString());
       }
     }
     return nextUrl.origin === options.currentUrl.origin ? getRelativePart(nextUrl) : nextUrl.toString();
@@ -177,7 +174,6 @@ async function resolveRedirectBackAwareHandlerUrlForRedirect(options: {
   rawHandlerUrl: string,
   currentUrl: URL,
   localOAuthCallbackUrl: string,
-  localSignOutHandlerUrl: string,
   getCrossDomainHandoffParams: (currentUrl: URL) => Promise<CrossDomainHandoffParams>,
 }): Promise<string> {
   const initial = buildRedirectBackAwareHandlerUrl({
@@ -186,7 +182,6 @@ async function resolveRedirectBackAwareHandlerUrlForRedirect(options: {
     currentUrl: options.currentUrl,
     crossDomainHandoffParams: null,
     localOAuthCallbackUrl: options.localOAuthCallbackUrl,
-    localSignOutHandlerUrl: options.localSignOutHandlerUrl,
   });
   if (options.handlerName === "signOut") {
     return initial;
@@ -205,7 +200,6 @@ async function resolveRedirectBackAwareHandlerUrlForRedirect(options: {
     currentUrl: options.currentUrl,
     crossDomainHandoffParams,
     localOAuthCallbackUrl: options.localOAuthCallbackUrl,
-    localSignOutHandlerUrl: options.localSignOutHandlerUrl,
   });
 }
 
@@ -215,7 +209,6 @@ export async function planRedirectToHandler(options: {
   noRedirectBack: boolean,
   currentUrl: URL | null,
   localOAuthCallbackUrl: string,
-  localSignOutHandlerUrl: string,
   getCrossDomainHandoffParams: (currentUrl: URL) => Promise<CrossDomainHandoffParams>,
 }): Promise<RedirectToHandlerPlan> {
   if (options.noRedirectBack || options.currentUrl == null) {
@@ -277,7 +270,6 @@ export async function planRedirectToHandler(options: {
       rawHandlerUrl: options.rawHandlerUrl,
       currentUrl: options.currentUrl,
       localOAuthCallbackUrl: options.localOAuthCallbackUrl,
-      localSignOutHandlerUrl: options.localSignOutHandlerUrl,
       getCrossDomainHandoffParams: options.getCrossDomainHandoffParams,
     }),
   };
