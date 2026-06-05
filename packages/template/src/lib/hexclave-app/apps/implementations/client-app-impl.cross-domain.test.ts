@@ -1,5 +1,36 @@
 import { describe, expect, it, vi } from "vitest";
+import { AccessToken } from "@hexclave/shared/dist/sessions";
+import { Store } from "@hexclave/shared/dist/utils/stores";
 import { StackClientApp } from "../interfaces/client-app";
+
+function createAccessTokenString(refreshTokenId: string): string {
+  const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return [
+    encode({ alg: "none", typ: "JWT" }),
+    encode({
+      sub: "user-id",
+      exp: nowSeconds + 60,
+      iat: nowSeconds,
+      iss: "https://api.example.test",
+      aud: "project-id",
+      project_id: "project-id",
+      branch_id: "main",
+      refresh_token_id: refreshTokenId,
+      role: "authenticated",
+      name: null,
+      email: null,
+      email_verified: false,
+      selected_team_id: null,
+      signed_up_at: nowSeconds,
+      is_anonymous: false,
+      is_restricted: false,
+      restricted_reason: null,
+      requires_totp_mfa: false,
+    }),
+    "",
+  ].join(".");
+}
 
 function createMockDocument(): Document {
   const cookieJar = new Map<string, string>();
@@ -133,5 +164,150 @@ describe("StackClientApp cross-domain auth", () => {
     expect(redirectUri.searchParams.get("hexclave_cross_domain_state")).toBe(outerState);
     expect(redirectUri.searchParams.get("hexclave_cross_domain_code_challenge")).toBe(outerCodeChallenge);
     expect(redirectUri.searchParams.get("hexclave_cross_domain_after_callback_redirect_url")).toBe("https://demo.stack-auth.com/");
+  });
+
+  it("routes hosted sign-out back through the source-domain sign-out handler", async () => {
+    const clientApp = new StackClientApp({
+      baseUrl: "http://localhost:12345",
+      projectId: "00000000-0000-4000-8000-000000000003",
+      publishableClientKey: "stack-pk-test",
+      tokenStore: "memory",
+      redirectMethod: "window",
+      urls: {
+        handler: "/handler",
+        signOut: "https://hosted.example.test/handler/sign-out",
+      },
+      noAutomaticPrefetch: true,
+    });
+    const currentHref = "https://demo.stack-auth.com/signed-in-page?foo=bar";
+
+    const previousWindow = globalThis.window;
+    const previousDocument = globalThis.document;
+    let redirectedUrl = "";
+    vi.spyOn(clientApp as any, "_isTrusted").mockResolvedValue(true);
+
+    globalThis.document = createMockDocument();
+    globalThis.window = {
+      location: {
+        href: currentHref,
+        assign: (url: string) => {
+          redirectedUrl = url;
+          throw new Error("INTENTIONAL_TEST_ABORT");
+        },
+      },
+    } as any;
+
+    try {
+      await expect(clientApp.redirectToSignOut()).rejects.toThrowError("INTENTIONAL_TEST_ABORT");
+    } finally {
+      globalThis.window = previousWindow;
+      globalThis.document = previousDocument;
+    }
+
+    const hostedSignOutUrl = new URL(redirectedUrl);
+    expect(hostedSignOutUrl.origin).toBe("https://hosted.example.test");
+    expect(hostedSignOutUrl.pathname).toBe("/handler/sign-out");
+    const sourceSignOutUrl = new URL(hostedSignOutUrl.searchParams.get("after_auth_return_to") ?? "");
+    expect(sourceSignOutUrl.origin).toBe("https://demo.stack-auth.com");
+    expect(sourceSignOutUrl.pathname).toBe("/handler/sign-out");
+    expect(sourceSignOutUrl.searchParams.get("after_auth_return_to")).toBe(currentHref);
+  });
+
+  it("keeps default hosted signOut() on the source domain when afterSignOut is not configured", async () => {
+    const clientApp = new StackClientApp({
+      baseUrl: "http://localhost:12345",
+      projectId: "00000000-0000-4000-8000-000000000004",
+      publishableClientKey: "stack-pk-test",
+      tokenStore: "memory",
+      redirectMethod: "window",
+      urls: {
+        default: { type: "hosted" },
+      },
+      noAutomaticPrefetch: true,
+    });
+    const currentHref = "https://demo.stack-auth.com/settings?tab=profile";
+
+    const clientInterface = Reflect.get(clientApp, "_interface");
+    const originalSignOut = Reflect.get(clientInterface, "signOut");
+    Reflect.set(clientInterface, "signOut", async () => {});
+    const previousWindow = globalThis.window;
+    const previousDocument = globalThis.document;
+    let redirectedUrl = "";
+
+    globalThis.document = createMockDocument();
+    globalThis.window = {
+      location: {
+        href: currentHref,
+        replace: (url: string) => {
+          redirectedUrl = url;
+          throw new Error("INTENTIONAL_TEST_ABORT");
+        },
+      },
+    } as any;
+
+    try {
+      const signOut = Reflect.get(clientApp, "_signOut");
+      if (typeof signOut !== "function") {
+        throw new Error("Expected StackClientApp to expose _signOut in tests.");
+      }
+      await expect(signOut.call(clientApp, {})).rejects.toThrowError("INTENTIONAL_TEST_ABORT");
+    } finally {
+      Reflect.set(clientInterface, "signOut", originalSignOut);
+      globalThis.window = previousWindow;
+      globalThis.document = previousDocument;
+    }
+
+    expect(redirectedUrl).toBe("/settings?tab=profile");
+  });
+
+  it("ignores stale session callbacks after a newer refresh token owns the token store", async () => {
+    const clientApp = new StackClientApp({
+      baseUrl: "http://localhost:12345",
+      projectId: "00000000-0000-4000-8000-000000000005",
+      publishableClientKey: "stack-pk-test",
+      tokenStore: "memory",
+      redirectMethod: "none",
+      noAutomaticPrefetch: true,
+    });
+    const oldAccessToken = createAccessTokenString("old-refresh-token-id");
+    const refreshedOldAccessToken = createAccessTokenString("refreshed-old-refresh-token-id");
+    const newAccessToken = createAccessTokenString("new-refresh-token-id");
+    const tokenStore = new Store({
+      refreshToken: "old-refresh-token",
+      accessToken: oldAccessToken,
+    });
+    const clientInterface = Reflect.get(clientApp, "_interface");
+    const originalFetchNewAccessToken = Reflect.get(clientInterface, "fetchNewAccessToken");
+    Reflect.set(clientInterface, "fetchNewAccessToken", async () => {
+      return AccessToken.createIfValid(refreshedOldAccessToken) ?? (() => {
+        throw new Error("Expected test access token to be valid");
+      })();
+    });
+
+    try {
+      const getSessionFromTokenStore = Reflect.get(clientApp, "_getSessionFromTokenStore");
+      if (typeof getSessionFromTokenStore !== "function") {
+        throw new Error("Expected StackClientApp to expose _getSessionFromTokenStore in tests.");
+      }
+      const oldSession = getSessionFromTokenStore.call(clientApp, tokenStore);
+      tokenStore.set({
+        refreshToken: "new-refresh-token",
+        accessToken: newAccessToken,
+      });
+
+      await oldSession.fetchNewTokens();
+      expect(tokenStore.get()).toEqual({
+        refreshToken: "new-refresh-token",
+        accessToken: newAccessToken,
+      });
+
+      oldSession.markInvalid();
+      expect(tokenStore.get()).toEqual({
+        refreshToken: "new-refresh-token",
+        accessToken: newAccessToken,
+      });
+    } finally {
+      Reflect.set(clientInterface, "fetchNewAccessToken", originalFetchNewAccessToken);
+    }
   });
 });

@@ -35,7 +35,7 @@ import { Store, storeLock } from "@hexclave/shared/dist/utils/stores";
 import { deindent, mergeScopeStrings } from "@hexclave/shared/dist/utils/strings";
 import type { TurnstileAction } from "@hexclave/shared/dist/utils/turnstile";
 import { BotChallengeExecutionFailedError, BotChallengeUserCancelledError, withBotChallengeFlow } from "@hexclave/shared/dist/utils/turnstile-flow";
-import { createUrlIfValid, isRelative } from "@hexclave/shared/dist/utils/urls";
+import { createUrlIfValid, getRelativePart, isRelative } from "@hexclave/shared/dist/utils/urls";
 import { generateUuid } from "@hexclave/shared/dist/utils/uuids";
 import * as tanstackStartServerContext from "@hexclave/tanstack-start/tanstack-start-server-context"; // THIS_LINE_PLATFORM tanstack-start
 import * as TanStackRouter from "@tanstack/react-router"; // THIS_LINE_PLATFORM tanstack-start
@@ -1481,17 +1481,17 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
       accessToken: tokenObj.accessToken,
     });
     session.onAccessTokenChange((newAccessToken) => {
-      tokenStore.update((old) => ({
+      tokenStore.update((old) => InternalSession.calculateSessionKey(old) === sessionKey ? {
         ...old,
         accessToken: newAccessToken?.token ?? null
-      }));
+      } : old);
     });
     session.onInvalidate(() => {
-      tokenStore.update((old) => ({
+      tokenStore.update((old) => InternalSession.calculateSessionKey(old) === sessionKey ? {
         ...old,
         accessToken: null,
         refreshToken: null,
-      }));
+      } : old);
     });
 
     let sessionsBySessionKey = this._sessionsByTokenStoreAndSessionKey.get(tokenStore) ?? new Map();
@@ -2837,6 +2837,17 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
     }).oauthCallback;
   }
 
+  protected _getLocalSignOutHandlerUrl(): string {
+    return resolveHandlerUrls({
+      urls: {
+        ...this._urlOptions,
+        default: { type: "handler-component" },
+        signOut: { type: "handler-component" },
+      },
+      projectId: this.projectId,
+    }).signOut;
+  }
+
   protected async _createCrossDomainAuthRedirectUrl(options: {
     redirectUri: string,
     state: string,
@@ -2967,6 +2978,7 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
       noRedirectBack: options?.noRedirectBack === true,
       currentUrl,
       localOAuthCallbackUrl: this._getLocalOAuthCallbackHandlerUrl(),
+      localSignOutHandlerUrl: this._getLocalSignOutHandlerUrl(),
       getCrossDomainHandoffParams: async (href) => await this._getCrossDomainHandoffParamsForRedirect(href),
     });
 
@@ -3811,9 +3823,28 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
       if (options?.redirectUrl) {
         await this._redirectTo({ url: options.redirectUrl, replace: true });
       } else {
-        await this.redirectToAfterSignOut();
+        await this._redirectToDefaultAfterSignOut();
       }
     });
+  }
+
+  protected async _redirectToDefaultAfterSignOut(): Promise<void> {
+    if (this._urlOptions.afterSignOut != null) {
+      await this.redirectToAfterSignOut({ replace: true });
+      return;
+    }
+
+    if (this._urlOptions.home != null) {
+      await this.redirectToHome({ replace: true });
+      return;
+    }
+
+    if (this._urlOptions.default?.type === "hosted" && typeof window !== "undefined") {
+      await this._redirectTo({ url: getRelativePart(new URL(window.location.href)), replace: true });
+      return;
+    }
+
+    await this.redirectToAfterSignOut({ replace: true });
   }
 
   async signOut(options?: { redirectUrl?: URL | string, tokenStore?: TokenStoreInit }): Promise<void> {
