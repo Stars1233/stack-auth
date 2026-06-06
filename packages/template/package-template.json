@@ -146,9 +146,9 @@
   "//": "IF_PLATFORM react-like",
   "peerDependencies": {
     "@types/react": ">=18.0.0",
-    "//": "IF_PLATFORM next",
     "@types/react-dom": ">=18.0.0",
     "react-dom": ">=18.0.0",
+    "//": "IF_PLATFORM next",
     "next": ">=14.1 || >=15.0.0-canary.0 || >=15.0.0-rc.0",
     "//": "END_PLATFORM",
     "//": "IF_PLATFORM tanstack-start",
@@ -160,11 +160,9 @@
   "//": "END_PLATFORM",
   "//": "IF_PLATFORM react-like",
   "peerDependenciesMeta": {
-    "//": "IF_PLATFORM next",
     "@types/react-dom": {
       "optional": true
     },
-    "//": "END_PLATFORM",
     "@types/react": {
       "optional": true
     }
