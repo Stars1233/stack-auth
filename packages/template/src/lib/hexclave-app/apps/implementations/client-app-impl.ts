@@ -65,7 +65,7 @@ import { EventTracker } from "./event-tracker";
 import type { CrossDomainHandoffParams } from "./redirect-page-urls";
 import { crossDomainAuthQueryParams, getCrossDomainHandoffParamsFromCurrentUrl, planRedirectToHandler } from "./redirect-page-urls";
 import { subscribeSessionRefresh } from "./session-refresh-subscription";
-import { AnalyticsOptions, SessionRecorder, analyticsOptionsFromJson, analyticsOptionsToJson } from "./session-replay";
+import { AnalyticsOptions, SessionRecorder, analyticsOptionsFromJson, analyticsOptionsToJson, getSessionReplayOptions } from "./session-replay";
 
 // IF_PLATFORM react-like
 import { useAsyncCache } from "./common";
@@ -686,13 +686,14 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
 
     const analyticsEnabled = this._analyticsOptions?.enabled !== false;
 
-    if (analyticsEnabled && isBrowserLike() && this._hasPersistentTokenStore() && this._analyticsOptions?.replays?.enabled === true) {
+    const sessionReplayOptions = getSessionReplayOptions(this._analyticsOptions);
+    if (analyticsEnabled && isBrowserLike() && this._hasPersistentTokenStore() && sessionReplayOptions.enabled) {
       this._sessionRecorder = new SessionRecorder({
         projectId: this.projectId,
         sendBatch: async (body, opts) => {
           return await this._interface.sendSessionReplayBatch(body, await getAnalyticsSession(), opts);
         },
-      }, this._analyticsOptions.replays);
+      }, sessionReplayOptions);
       this._sessionRecorder.start();
     }
 
