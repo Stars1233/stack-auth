@@ -925,10 +925,14 @@ export function getSdkSetupPrompt(mainType: "ai-prompt" | "nextjs" | "react" | "
             });
             \`\`\`
           ` : ""}
+        ` : ""}
 
-          ${isAiPrompt ? deindent`
-            Note that the secret server key should **never** be exposed to the client, as it can be used to read and write everything in your Hexclave project. In web frontends or bundled applications, you should therefore always only ever create a \`HexclaveClientApp\` object.
-          ` : ""}
+        ${isAiPrompt ? deindent`
+          (In either case, the secret server key and project ID will be injected, in development, by the \`hexclave dev\` command, or, in production/cloud environments, through environment variables.)
+        ` : ""}
+
+        ${isAiPrompt ? deindent`
+          Note that the secret server key should **never** be exposed to the client, as it can be used to read and write everything in your Hexclave project. In web frontends or bundled applications, you should therefore always only ever create a \`HexclaveClientApp\` object.
         ` : ""}
       </Step>
 
@@ -942,8 +946,8 @@ export function getSdkSetupPrompt(mainType: "ai-prompt" | "nextjs" | "react" | "
         ` : ""}
 
         <AccordionGroup>
-          <Accordion title="Option 1: Running Hexclave's dashboard locally (recommended)" defaultOpen>
-            ${isAiPrompt ? "This is the strongly recommended option unless the user has explicitly said otherwise, as it allows usage of \`hexclave.config.ts\` files and does not require the user to get project IDs or API keys from the dashboard." : ""}
+          <Accordion title="Option 1: Running Hexclave's dashboard locally (recommended for development)" defaultOpen>
+            ${isAiPrompt ? "This is the strongly recommended option unless the user has explicitly said otherwise, as it allows usage of \`hexclave.config.ts\` files and automatically injects environment variables such as project ID and secret server key through the \`hexclave dev\` command. No account needed — the CLI generates and stores a new local project automatically." : ""}
 
             First, create a \`hexclave.config.ts\` configuration file in the root directory of the workspace (or anywhere else):
 
@@ -988,7 +992,7 @@ export function getSdkSetupPrompt(mainType: "ai-prompt" | "nextjs" | "react" | "
               Note: If you're an AI agent, and you don't already have the information you need from the Cloud project, you may have to ask the user for help on this step. You can either ask them to provide the environment variables, or just leave them empty for now and ask the user to complete them at the end.
             ` : ""}
 
-            If you'd rather run your development environment on our infrastructure, or you already have an existing product, you can also connect a cloud project.
+            If you're looking to run a production version of your application, or the local dashboard doesn't work for you, you can also connect to Hexclave's cloud directly.
 
             This process is slightly different depending on whether you're setting up a frontend or a backend (whether your app can keep a secret key safe or not).
 
