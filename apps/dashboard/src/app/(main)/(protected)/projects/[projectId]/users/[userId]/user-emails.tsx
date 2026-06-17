@@ -15,13 +15,6 @@ import { STATUS_LABELS, computeEmailStats, getStatusBadgeColor } from "../../ema
 import { getRecipientDisplay, getEmailTimestamp } from "../../email-sent/email-outbox-utils";
 import { StatsBar } from "../../email-sent/stats-bar";
 
-function isEmailForUser(email: AdminEmailOutbox, userId: string): boolean {
-  const to = email.to;
-  if (to.type === "user-primary-email" && to.userId === userId) return true;
-  if (to.type === "user-custom-emails" && to.userId === userId) return true;
-  return false;
-}
-
 const emailColumns: DataGridColumnDef<AdminEmailOutbox>[] = [
   {
     id: "subject",
@@ -75,45 +68,47 @@ export function UserEmailsSection({ user }: { user: ServerUser }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetches all pages of the outbox so client-side filtering by userId
-  // doesn't silently miss emails on later pages.
-  const refreshEmails = useCallback(async () => {
+  const refreshEmails = useCallback(async (isCancelled: () => boolean) => {
     setLoading(true);
     setError(null);
     try {
       const allEmails: AdminEmailOutbox[] = [];
       let cursor: string | undefined;
       do {
-        const result = await hexclaveAdminApp.listOutboxEmails(cursor != null ? { cursor } : undefined);
+        const result = await hexclaveAdminApp.listOutboxEmails({
+          userId: user.id,
+          cursor,
+        });
+        if (isCancelled()) return;
         allEmails.push(...result.items);
         cursor = result.nextCursor ?? undefined;
       } while (cursor != null);
       setEmails(allEmails);
     } catch (err) {
+      if (isCancelled()) return;
       setError(err instanceof Error ? err.message : "Failed to load emails");
     } finally {
+      if (isCancelled()) return;
       setLoading(false);
     }
-  }, [hexclaveAdminApp]);
+  }, [hexclaveAdminApp, user.id]);
 
   useEffect(() => {
     let cancelled = false;
     runAsynchronouslyWithAlert(async () => {
-      await refreshEmails();
-      if (cancelled) return;
+      await refreshEmails(() => cancelled);
     });
     return () => {
       cancelled = true;
     };
   }, [refreshEmails]);
 
-  const filtered = useMemo(
-    () => emails
-      .filter((e) => isEmailForUser(e, user.id))
+  const sortedEmails = useMemo(
+    () => [...emails]
       .sort((a, b) => getEmailTimestamp(b).getTime() - getEmailTimestamp(a).getTime()),
-    [emails, user.id],
+    [emails],
   );
-  const stats = useMemo(() => computeEmailStats(filtered), [filtered]);
+  const stats = useMemo(() => computeEmailStats(sortedEmails), [sortedEmails]);
 
   if (loading) {
     return (
@@ -136,10 +131,10 @@ export function UserEmailsSection({ user }: { user: ServerUser }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {filtered.length > 0 && (
+      {sortedEmails.length > 0 && (
         <div className="py-1">
           <div className="mb-2 text-sm text-center">
-            <span className="font-medium">{filtered.length} email{filtered.length !== 1 ? "s" : ""}</span>
+            <span className="font-medium">{sortedEmails.length} email{sortedEmails.length !== 1 ? "s" : ""}</span>
           </div>
           <StatsBar data={stats} />
         </div>
@@ -149,7 +144,7 @@ export function UserEmailsSection({ user }: { user: ServerUser }) {
         title="Sent Emails"
         urlStateKey="useremails"
         columns={emailColumns}
-        rows={filtered}
+        rows={sortedEmails}
         getRowId={(email) => email.id}
         emptyLabel="No emails sent to this user"
         paginated
