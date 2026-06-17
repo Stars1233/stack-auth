@@ -977,8 +977,8 @@ export function getSdkSetupPrompt(mainType: "ai-prompt" | "nextjs" | "react" | "
               // ...
               "scripts": {
                 // ...
-                "dev": "hexclave dev --config-file ./hexclave.config.ts -- npm run dev:without-hexclave",
-                "dev:without-hexclave": "<your-existing-dev-script>"
+                "dev": "hexclave dev --config-file ./hexclave.config.ts -- npm run dev:inner",
+                "dev:inner": "<your-existing-dev-script>"
               }
             }
             \`\`\`
