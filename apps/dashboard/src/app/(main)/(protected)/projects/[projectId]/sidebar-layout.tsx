@@ -27,8 +27,8 @@ import { cn } from "@/lib/utils";
 import {
   CaretDownIcon,
   CaretRightIcon,
+  DatabaseIcon,
   ChartBarIcon,
-  ChartPieSliceIcon,
   CubeIcon,
   GearIcon,
   GlobeIcon,
@@ -109,14 +109,23 @@ const dashboardsItem: Item = {
   type: 'item',
 };
 
-// Internal-only: platform-wide analytics across every project. Rendered solely
-// when the active project is the internal (platform team) dashboard.
-const platformAnalyticsItem: Item = {
-  name: "Platform Analytics",
-  href: "/platform-analytics",
-  regex: /^\/projects\/[^\/]+\/platform-analytics(\/.*)?$/,
-  icon: ChartPieSliceIcon,
-  type: 'item',
+// Internal-only pages that are rendered solely for the internal project.
+const internalToolsItem: AppSection = {
+  name: "Internal tools",
+  icon: DatabaseIcon,
+  firstItemHref: "/platform-analytics",
+  items: [
+    {
+      name: "External DB Sync",
+      href: "/external-db-sync",
+      match: (fullUrl: URL) => /^\/projects\/[^\/]+\/external-db-sync(\/.*)?$/.test(fullUrl.pathname),
+    },
+    {
+      name: "Platform Analytics",
+      href: "/platform-analytics",
+      match: (fullUrl: URL) => /^\/projects\/[^\/]+\/platform-analytics(\/.*)?$/.test(fullUrl.pathname),
+    },
+  ],
 };
 
 const projectSettingsItem: AppSection = {
@@ -490,6 +499,17 @@ function SidebarContent({
   const [isProjectSettingsExpanded, setIsProjectSettingsExpanded] = useState(() =>
     /^\/projects\/[^\/]+\/(project-settings|project-keys|domains)(\/.*)?$/.test(pathname)
   );
+  const [isInternalToolsExpanded, setIsInternalToolsExpanded] = useState(() =>
+    /^\/projects\/[^\/]+\/(platform-analytics|external-db-sync)(\/.*)?$/.test(pathname)
+  );
+  const internalToolsSection = useMemo<AppSection>(() => ({
+    ...internalToolsItem,
+    firstItemHref: `/projects/${projectId}${internalToolsItem.firstItemHref ?? "/platform-analytics"}`,
+    items: internalToolsItem.items.map((item) => ({
+      ...item,
+      href: `/projects/${projectId}${item.href}`,
+    })),
+  }), [projectId]);
   const projectSettingsSection = useMemo<AppSection>(() => ({
     ...projectSettingsItem,
     firstItemHref: `/projects/${projectId}${projectSettingsItem.firstItemHref ?? "/project-settings"}`,
@@ -541,9 +561,10 @@ function SidebarContent({
           />
           {projectId === "internal" && (
             <NavItem
-              item={platformAnalyticsItem}
+              item={internalToolsSection}
               onClick={onNavigate}
-              href={`/projects/${projectId}${platformAnalyticsItem.href}`}
+              isExpanded={isInternalToolsExpanded}
+              onToggle={() => setIsInternalToolsExpanded((value) => !value)}
               isCollapsed={isCollapsed}
             />
           )}
