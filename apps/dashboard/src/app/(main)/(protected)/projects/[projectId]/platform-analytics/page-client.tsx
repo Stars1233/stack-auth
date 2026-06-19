@@ -446,6 +446,7 @@ type SortKey = "total_users" | "verified" | "active_users" | "signups" | "signup
 function ProjectLeaderboard({ projects, windowDays }: { projects: ProjectRow[], windowDays: number }) {
   const [sortKey, setSortKey] = useState<SortKey>("total_users");
   const [search, setSearch] = useState("");
+  const [showDormant, setShowDormant] = useState(false);
 
   const sorted = useMemo(() => {
     const value = (p: ProjectRow): number => {
@@ -472,10 +473,16 @@ function ProjectLeaderboard({ projects, windowDays }: { projects: ProjectRow[], 
     };
     const q = search.trim().toLowerCase();
     return projects
+      .filter((p) => showDormant || projectStatus(p, windowDays) !== "Dormant")
       .filter((p) => q === "" || p.display_name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q))
       .slice()
       .sort((a, b) => value(b) - value(a));
-  }, [projects, sortKey, search]);
+  }, [projects, sortKey, search, showDormant, windowDays]);
+
+  const dormantCount = useMemo(
+    () => projects.filter((p) => projectStatus(p, windowDays) === "Dormant").length,
+    [projects, windowDays],
+  );
 
   const header = (key: SortKey, label: string) => (
     <button
@@ -490,14 +497,35 @@ function ProjectLeaderboard({ projects, windowDays }: { projects: ProjectRow[], 
   return (
     <Card>
       <CardContent className="flex flex-col gap-3 py-5">
-        <div className="flex items-center justify-between gap-3">
-          <Typography className="text-sm font-semibold">Projects</Typography>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search projects"
-            className="w-48 rounded-lg border border-border/60 bg-transparent px-2.5 py-1 text-xs outline-none focus:border-foreground/30"
-          />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-0.5">
+            <Typography className="text-sm font-semibold">Projects</Typography>
+            {!showDormant && dormantCount > 0 && (
+              <Typography variant="secondary" className="text-xs">
+                Hiding {formatNumber(dormantCount)} dormant project{dormantCount === 1 ? "" : "s"}.
+              </Typography>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowDormant((value) => !value)}
+              className={cn(
+                "rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors hover:transition-none",
+                showDormant
+                  ? "border-foreground/30 bg-foreground/[0.08] text-foreground"
+                  : "border-border/60 bg-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {showDormant ? "Hide dormant" : "Show dormant"}
+            </button>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search projects"
+              className="w-48 rounded-lg border border-border/60 bg-transparent px-2.5 py-1 text-xs outline-none focus:border-foreground/30"
+            />
+          </div>
         </div>
         <div className="overflow-x-auto">
           <div className="min-w-[820px]">
