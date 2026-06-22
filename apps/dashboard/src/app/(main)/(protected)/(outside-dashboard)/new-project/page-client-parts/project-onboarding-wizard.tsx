@@ -463,12 +463,11 @@ export function ProjectOnboardingWizard(props: {
 
   if (props.status === "config_choice") {
     if (isDevelopmentEnvironment) {
-      const developmentEnvironmentName = isRemoteDevelopmentEnvironment ? "remote development environment" : "local emulator";
       return (
         <OnboardingPage
           stepKey="config-choice"
           title="Welcome to Hexclave!"
-          subtitle={`You are running Hexclave in the ${developmentEnvironmentName}.`}
+          subtitle={`You are running Hexclave with the local dashboard.`}
           steps={timelineSteps}
           currentStep="config_choice"
           onStepClick={handleTimelineStepClick}
@@ -488,10 +487,10 @@ export function ProjectOnboardingWizard(props: {
         >
           <div className="mx-auto max-w-xl rounded-2xl bg-white/70 p-6 text-center ring-1 ring-black/[0.06] dark:bg-background/60 dark:ring-white/[0.06]">
             <Typography className="text-base leading-relaxed">
-              This development-environment project is ready for onboarding.
+              This local project is running locally and ready to get started.
             </Typography>
             <Typography variant="secondary" className="mt-3 text-sm leading-relaxed">
-              Next, we will guide you through the onboarding flow to set up your Hexclave configuration.
+              Next, we will guide you through the onboarding flow to set up your hexclave.config.ts file.
             </Typography>
           </div>
         </OnboardingPage>
