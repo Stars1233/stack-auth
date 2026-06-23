@@ -76,6 +76,8 @@ export function getProjectQuery(projectId: string): RawQuery<Promise<Omit<Projec
         owner_team_id: row.ownerTeamId,
         onboarding_status: row.onboardingStatus,
         onboarding_state: onboardingState ?? undefined,
+        pushed_config_error: null,
+        config_warnings: [],
       };
     },
   };

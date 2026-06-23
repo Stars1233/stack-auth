@@ -196,6 +196,12 @@ export class _HexclaveAdminAppImplIncomplete<HasTokenStore extends boolean, Proj
       logoFullUrl: data.logo_full_url,
       logoDarkModeUrl: data.logo_dark_mode_url,
       logoFullDarkModeUrl: data.logo_full_dark_mode_url,
+      pushedConfigError: data.pushed_config_error == null ? null : {
+        message: data.pushed_config_error.message,
+      },
+      configWarnings: data.config_warnings.map((warning) => ({
+        message: warning.message,
+      })),
       config: {
         signUpEnabled: data.config.sign_up_enabled,
         credentialEnabled: data.config.credential_enabled,

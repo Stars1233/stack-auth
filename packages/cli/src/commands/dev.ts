@@ -28,10 +28,23 @@ type SessionResponse = {
   onboarding_outstanding: boolean,
 };
 
+type ConfigSyncEventBase = {
+  config_file_path: string,
+  created_at_millis: number,
+};
+
+type ConfigSyncEvent = ConfigSyncEventBase & ({
+  status: "success",
+} | {
+  status: "error",
+  error_message: string,
+});
+
 type HeartbeatResponse = {
   ok: true,
   browser_secret_confirmation_code?: string,
   browser_secret_confirmation_code_expires_at_millis?: number,
+  config_sync_events?: ConfigSyncEvent[],
 };
 
 const HEARTBEAT_INTERVAL_MS = 5_000;
@@ -126,6 +139,19 @@ function normalizeApiBaseUrl(apiBaseUrl: string): string {
 
 function logDev(message: string): void {
   console.warn(`${LOG_PREFIX}${message}`);
+}
+
+function stderrSupportsAnsiColor(): boolean {
+  return process.stderr.isTTY && process.env.NO_COLOR == null && process.env.TERM !== "dumb";
+}
+
+export function configErrorLogPrefix(supportsColor = stderrSupportsAnsiColor()): string {
+  const label = supportsColor ? "\x1b[41;37;1m[CONFIG ERROR]\x1b[0m" : "[CONFIG ERROR]";
+  return `${LOG_PREFIX}${label} `;
+}
+
+function logDevConfigError(message: string): void {
+  console.warn(`${configErrorLogPrefix()}${message}`);
 }
 
 function openUrlInBrowser(url: string): boolean {
@@ -610,7 +636,28 @@ function isSessionResponse(value: unknown): value is SessionResponse {
   );
 }
 
-function isHeartbeatResponse(value: unknown): value is HeartbeatResponse {
+function isConfigSyncEvent(value: unknown): value is ConfigSyncEvent {
+  if (
+    !isRecord(value) ||
+    !("config_file_path" in value) ||
+    typeof value.config_file_path !== "string" ||
+    !("status" in value) ||
+    !("created_at_millis" in value) ||
+    typeof value.created_at_millis !== "number"
+  ) {
+    return false;
+  }
+  if (value.status === "success") {
+    return true;
+  }
+  return (
+    value.status === "error" &&
+    "error_message" in value &&
+    typeof value.error_message === "string"
+  );
+}
+
+export function isHeartbeatResponse(value: unknown): value is HeartbeatResponse {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -624,6 +671,10 @@ function isHeartbeatResponse(value: unknown): value is HeartbeatResponse {
     (
       !("browser_secret_confirmation_code_expires_at_millis" in value) ||
       typeof value.browser_secret_confirmation_code_expires_at_millis === "number"
+    ) &&
+    (
+      !("config_sync_events" in value) ||
+      (Array.isArray(value.config_sync_events) && value.config_sync_events.every(isConfigSyncEvent))
     )
   );
 }
@@ -637,6 +688,16 @@ function logBrowserSecretConfirmationCode(response: HeartbeatResponse): void {
   logDev(expiresInSeconds == null
     ? `Dashboard browser confirmation code: ${response.browser_secret_confirmation_code}`
     : `Dashboard browser confirmation code: ${response.browser_secret_confirmation_code} (expires in ${expiresInSeconds}s)`);
+}
+
+function logConfigSyncEvents(response: HeartbeatResponse): void {
+  for (const event of response.config_sync_events ?? []) {
+    if (event.status === "success") {
+      logDev(`Config synced to development environment project: ${event.config_file_path}`);
+    } else {
+      logDevConfigError(`Config sync failed for ${event.config_file_path}: ${event.error_message}`);
+    }
+  }
 }
 
 function pendingBrowserSecretConfirmationCodeFromState(port: number): HeartbeatResponse | null {
@@ -928,6 +989,7 @@ async function heartbeatUntilStopped(sessionState: DashboardSessionState, option
       logBrowserSecretConfirmationCode(heartbeatBody);
       lastLoggedConfirmationCode = heartbeatBody.browser_secret_confirmation_code;
     }
+    logConfigSyncEvents(heartbeatBody);
   }
 }
 

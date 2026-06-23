@@ -1,5 +1,4 @@
-import { WebAuthnError, startAuthentication, startRegistration } from "@simplewebauthn/browser";
-import { KnownError, KnownErrors, HexclaveClientInterface } from "@hexclave/shared";
+import { HexclaveClientInterface, KnownError, KnownErrors } from "@hexclave/shared";
 import type { RequestListener } from "@hexclave/shared/dist/interface/client-interface";
 import { ContactChannelsCrud } from "@hexclave/shared/dist/interface/crud/contact-channels";
 import { CurrentUserCrud } from "@hexclave/shared/dist/interface/crud/current-user";
@@ -38,15 +37,16 @@ import { BotChallengeExecutionFailedError, BotChallengeUserCancelledError, withB
 import { createUrlIfValid, getRelativePart, isRelative } from "@hexclave/shared/dist/utils/urls";
 import { generateUuid } from "@hexclave/shared/dist/utils/uuids";
 import * as tanstackStartServerContext from "@hexclave/tanstack-start/tanstack-start-server-context"; // THIS_LINE_PLATFORM tanstack-start
+import { WebAuthnError, startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import * as TanStackRouter from "@tanstack/react-router"; // THIS_LINE_PLATFORM tanstack-start
 import * as cookie from "cookie";
 import * as NextNavigationUnscrambled from "next/navigation"; // import the entire module to get around some static compiler warnings emitted by Next.js in some cases | THIS_LINE_PLATFORM next
 import React, { useCallback, useMemo } from "react"; // THIS_LINE_PLATFORM react-like
 import type * as yup from "yup";
+import { envVars } from "../../../../generated/env";
 import { constructRedirectUrl } from "../../../../utils/url";
 import { callOAuthCallback, getNewOAuthProviderOrScopeUrl } from "../../../auth";
 import { CookieHelper, createBrowserCookieHelper, createCookieHelper, createPlaceholderCookieHelper, deleteCookie, deleteCookieClient, getCookieClient, isSecure as isSecureCookieContext, saveVerifierAndState, setOrDeleteCookie, setOrDeleteCookieClient } from "../../../cookie";
-import { envVars } from "../../../../generated/env";
 import { ApiKey, ApiKeyCreationOptions, ApiKeyUpdateOptions, apiKeyCreationOptionsToCrud } from "../../api-keys";
 import { ConvexCtx, GetCurrentPartialUserOptions, GetCurrentUserOptions, HandlerUrlOptions, HandlerUrls, OAuthScopesOnSignIn, RedirectMethod, RedirectToOptions, RequestLike, ResolvedHandlerUrls, TokenStoreInit, hexclaveAppInternalsSymbol } from "../../common";
 import { DeprecatedOAuthConnection, OAuthConnection } from "../../connected-accounts";
@@ -73,6 +73,7 @@ import { useAsyncCache } from "./common";
 // IF_PLATFORM js-like
 import { mountClickmapOverlay } from "../../../../clickmap";
 import { mountDevTool } from "../../../../dev-tool";
+import { mountPushedConfigErrorOverlay } from "../../../../pushed-config-error-overlay";
 // END_PLATFORM
 
 let isReactServer = false;
@@ -770,6 +771,7 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
       // when a dashboard-minted token is handed over, so the listener is
       // mounted unconditionally (the heavy UI is lazy-loaded on demand).
       mountClickmapOverlay(this as any);
+      mountPushedConfigErrorOverlay(this as any);
     }
     // END_PLATFORM
   }
@@ -1675,6 +1677,12 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
     return {
       id: crud.id,
       displayName: crud.display_name,
+      pushedConfigError: crud.pushed_config_error == null ? null : {
+        message: crud.pushed_config_error.message,
+      },
+      configWarnings: crud.config_warnings.map((warning) => ({
+        message: warning.message,
+      })),
       config: {
         signUpEnabled: crud.config.sign_up_enabled,
         credentialEnabled: crud.config.credential_enabled,

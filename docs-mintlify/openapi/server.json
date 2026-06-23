@@ -5728,6 +5728,17 @@
                       "type": "string",
                       "example": "MyMusic",
                       "description": "Human-readable project display name. This is not a unique identifier."
+                    },
+                    "pushed_config_error": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "message"
+                      ]
                     }
                   },
                   "required": [

@@ -211,7 +211,7 @@ describe("remote development environment config file", () => {
     const { readConfigFile } = await import("./config-file");
 
     await expect(readConfigFile(configPath)).rejects.toThrow(
-      `Failed to load config file ${configPath}. If your config imports a value (e.g. defineHexclaveConfig) from a framework package such as "@hexclave/next", import it from that package's lightweight "/config" entrypoint instead`
+      `Failed to load config file ${configPath}.`
     );
   });
 
