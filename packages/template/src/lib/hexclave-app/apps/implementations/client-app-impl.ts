@@ -376,7 +376,7 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
         {
           provider,
           redirectUrl: this._getOAuthCallbackRedirectUri(),
-          errorRedirectUrl: this.urls.error,
+          errorRedirectUrl: this._getUrls().error,
           providerScope: mergeScopeStrings(scopeString, (this._oauthScopesOnSignIn[provider as ProviderType] ?? []).join(" ")),
         },
         session,
@@ -581,7 +581,7 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
         {
           provider: options.providerId,
           redirectUrl: this._getOAuthCallbackRedirectUri(),
-          errorRedirectUrl: this.urls.error,
+          errorRedirectUrl: this._getUrls().error,
           providerScope: mergeScopeStrings(options.scope || "", (this._oauthScopesOnSignIn[options.providerId] ?? []).join(" ")),
         },
         options.session,
@@ -3156,13 +3156,13 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
   async redirectToMfa(options?: RedirectToOptions) { return await this._redirectToHandler("mfa", options); }
 
   async sendForgotPasswordEmail(email: string, options?: { callbackUrl?: string }): Promise<Result<undefined, KnownErrors["UserNotFound"]>> {
-    return await this._interface.sendForgotPasswordEmail(email, options?.callbackUrl ?? constructRedirectUrl(this.urls.passwordReset, "callbackUrl"));
+    return await this._interface.sendForgotPasswordEmail(email, options?.callbackUrl ?? constructRedirectUrl(this._getUrls().passwordReset, "callbackUrl"));
   }
 
   async sendMagicLinkEmail(email: string, options?: {
     callbackUrl?: string,
   }): Promise<Result<{ nonce: string }, KnownErrors["RedirectUrlNotWhitelisted"] | KnownErrors["BotChallengeFailed"]>> {
-    const callbackUrl = options?.callbackUrl ?? constructRedirectUrl(this.urls.magicLinkCallback, "callbackUrl");
+    const callbackUrl = options?.callbackUrl ?? constructRedirectUrl(this._getUrls().magicLinkCallback, "callbackUrl");
     return await this._executeResultWithBotChallengeFlow({
       action: "send_magic_link_email",
       execute: async (challenge) => {
@@ -3455,7 +3455,7 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
       return await this._interface.authorizeOAuth({
         provider,
         redirectUrl: constructRedirectUrl(this._getOAuthCallbackRedirectUri(), "redirectUrl"),
-        errorRedirectUrl: constructRedirectUrl(this.urls.error, "errorRedirectUrl"),
+        errorRedirectUrl: constructRedirectUrl(this._getUrls().error, "errorRedirectUrl"),
         afterCallbackRedirectUrl,
         type: "authenticate",
         providerScope: this._oauthScopesOnSignIn[provider]?.join(" "),
@@ -3575,7 +3575,7 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
     }
     this._ensurePersistentTokenStore();
     const session = await this._getSession();
-    const emailVerificationRedirectUrl = options.noVerificationCallback ? undefined : options.verificationCallbackUrl ?? constructRedirectUrl(this.urls.emailVerification, "verificationCallbackUrl");
+    const emailVerificationRedirectUrl = options.noVerificationCallback ? undefined : options.verificationCallbackUrl ?? constructRedirectUrl(this._getUrls().emailVerification, "verificationCallbackUrl");
 
     const executeSignUp = async (challenge: { token?: string, phase?: "invisible" | "visible", unavailable?: true }) => {
       let result = await this._interface.signUpWithCredential(
@@ -3738,7 +3738,7 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
 
     // Step 2: Open the browser for the user to authenticate and display the verification code
     const url = buildCliAuthConfirmUrl({
-      cliAuthConfirmUrl: this.urls.cliAuthConfirm,
+      cliAuthConfirmUrl: this._getUrls().cliAuthConfirm,
       appUrl: options.appUrl,
       loginCode,
     });
