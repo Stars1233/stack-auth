@@ -40,7 +40,7 @@ const TEST_FILE_DIR = dirname(fileURLToPath(import.meta.url));
 let tempDir: string | undefined;
 
 function createTempDir(): string {
-  tempDir ??= mkdtempSync(join(TEST_FILE_DIR, ".stack-rde-config-test-"));
+  tempDir ??= mkdtempSync(join(TEST_FILE_DIR, ".stack-rde-config-test.untracked.dir-"));
   return tempDir;
 }
 
