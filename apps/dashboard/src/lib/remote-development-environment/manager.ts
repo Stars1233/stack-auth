@@ -9,7 +9,7 @@ import { AccessToken } from "@hexclave/shared/dist/sessions";
 import { errorToNiceString } from "@hexclave/shared/dist/utils/errors";
 import { runAsynchronously } from "@hexclave/shared/dist/utils/promises";
 import { randomUUID } from "crypto";
-import { watch, type FSWatcher } from "fs";
+import { appendFileSync, watch, type FSWatcher } from "fs";
 import { basename, dirname } from "path";
 import { peekRemoteDevelopmentEnvironmentBrowserSecretConfirmationCodeForCli } from "./browser-secret";
 import { formatConfigSyncErrorForCli } from "./config-sync-error-format";
@@ -34,6 +34,7 @@ const STARTUP_EMPTY_SESSION_GRACE_MS = 20_000;
 const SYNC_DEBOUNCE_MS = 500;
 const CONFIG_SYNC_FORMAT_VERSION = 2;
 const LOG_PREFIX = "[Stack RDE]";
+const RDE_DASHBOARD_LOG_PATH_ENV_VAR = "HEXCLAVE_RDE_DASHBOARD_LOG_PATH";
 const CONFIG_SYNC_DUPLICATE_EVENT_SUPPRESSION_MS = 2_000;
 
 export class RemoteDevelopmentEnvironmentApiUnavailableError extends Error {
@@ -167,22 +168,41 @@ function getGlobals(): RemoteDevelopmentEnvironmentGlobals {
   return globals.__stackRemoteDevelopmentEnvironment;
 }
 
-function logRemoteDevelopmentEnvironment(message: string, details?: Record<string, unknown>): void {
+function writeRemoteDevelopmentEnvironmentLogLine(line: string): boolean {
+  const logPath = process.env[RDE_DASHBOARD_LOG_PATH_ENV_VAR];
+  if (logPath == null || logPath.length === 0) {
+    return false;
+  }
+  try {
+    appendFileSync(logPath, `${line}\n`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function formatRemoteDevelopmentEnvironmentLogLine(message: string, details?: Record<string, unknown>): string {
   const prefix = `[${new Date().toISOString()}] ${LOG_PREFIX}`;
   if (details == null) {
-    console.log(`${prefix} ${message}`);
+    return `${prefix} ${message}`;
+  }
+  return `${prefix} ${message} ${JSON.stringify(details)}`;
+}
+
+function logRemoteDevelopmentEnvironment(message: string, details?: Record<string, unknown>): void {
+  const line = formatRemoteDevelopmentEnvironmentLogLine(message, details);
+  if (writeRemoteDevelopmentEnvironmentLogLine(line)) {
     return;
   }
-  console.log(`${prefix} ${message}`, details);
+  console.log(line);
 }
 
 function warnRemoteDevelopmentEnvironment(message: string, details?: Record<string, unknown>): void {
-  const prefix = `[${new Date().toISOString()}] ${LOG_PREFIX}`;
-  if (details == null) {
-    console.warn(`${prefix} ${message}`);
+  const line = formatRemoteDevelopmentEnvironmentLogLine(message, details);
+  if (writeRemoteDevelopmentEnvironmentLogLine(line)) {
     return;
   }
-  console.warn(`${prefix} ${message}`, details);
+  console.warn(line);
 }
 
 function configSyncEventsMatchForCliDeduplication(a: ConfigSyncEvent, b: { status: "success" } | { status: "error", errorMessage: string }): boolean {

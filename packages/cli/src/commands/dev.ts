@@ -58,6 +58,7 @@ const DASHBOARD_FORCE_STOP_TIMEOUT_MS = 2_000;
 const DASHBOARD_HEALTH_PATH = "/api/development-environment/health";
 const DEV_DASHBOARD_COMMAND_ENV_VAR = "HEXCLAVE_CLI_DEV_DASHBOARD_COMMAND";
 const DEV_DASHBOARD_DIST_DIR_ENV_VAR = "HEXCLAVE_DASHBOARD_NEXT_DIST_DIR";
+const RDE_DASHBOARD_LOG_PATH_ENV_VAR = "HEXCLAVE_RDE_DASHBOARD_LOG_PATH";
 const BUNDLED_DASHBOARD_DIR_NAME = "dashboard";
 const BUNDLED_DASHBOARD_SERVER_PATH = join("apps", "dashboard", "server.js");
 const DASHBOARD_RUNTIME_DIR_NAME = "rde-dashboard-runtime";
@@ -502,6 +503,7 @@ async function startDashboardIfNeeded(options: { apiBaseUrl: string, secret: str
     NEXT_PUBLIC_STACK_IS_REMOTE_DEVELOPMENT_ENVIRONMENT: "true",
     NEXT_PUBLIC_STACK_IS_PREVIEW: "false",
     [DASHBOARD_PORT_ENV_VAR]: String(options.port),
+    [RDE_DASHBOARD_LOG_PATH_ENV_VAR]: dashboardLogPath(options.port),
   };
   try {
     const logPath = dashboardLogPath(options.port);
