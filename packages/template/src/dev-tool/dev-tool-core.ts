@@ -1848,7 +1848,7 @@ function createSupportTab(app: StackClientApp<true>): HTMLElement {
 function createComponentsTab(app: StackClientApp<true>): HTMLElement {
   const container = h('div', { className: 'sdt-pg-layout' });
   const apiBaseUrl = resolveApiBaseUrl(app);
-  const urls = app.urls;
+  const urls = app[hexclaveAppInternalsSymbol].getUrls();
   const urlOptions: HandlerUrlOptions = app[hexclaveAppInternalsSymbol].getConstructorOptions().urls ?? {};
 
   const PAGE_ENTRIES: { key: keyof HandlerUrls; label: string }[] = [

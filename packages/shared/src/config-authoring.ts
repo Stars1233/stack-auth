@@ -31,7 +31,9 @@ export function defineStackConfig(config: StrictStackConfig<StackConfig>): Stack
   return config;
 }
 
-// Hexclave alias — separate function so it does not inherit the deprecation tag.
+/**
+ * Defines a Hexclave project configuration as code. See the documentation at https://skill.hexclave.com for more information.
+ */
 export function defineHexclaveConfig(config: StrictStackConfig<HexclaveConfig>): HexclaveConfig {
   return config;
 }

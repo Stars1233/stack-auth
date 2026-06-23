@@ -896,7 +896,7 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
 
   protected _getOAuthCallbackRedirectUri(): string {
     if (!this._isOAuthCallbackUrlHosted()) {
-      return this.urls.oauthCallback;
+      return this._getUrls().oauthCallback;
     }
     if (typeof window === "undefined") {
       throw new HexclaveAssertionError("Hosted OAuth callback URLs require a browser environment to use the current URL as the redirect URI");
@@ -4190,6 +4190,7 @@ export class _HexclaveClientAppImplIncomplete<HasTokenStore extends boolean, Pro
       ) => {
         return await this._interface.sendClientRequest(path, requestOptions, await this._getSession(), requestType);
       },
+      getUrls: () => this._getUrls(),
       getRedirectMethod: () => this._redirectMethod ?? throwErr("Redirect method should have been initialized in the Stack client app constructor"),
       redirectToUrl: async (url: string | URL, options?: { replace?: boolean }) => {
         await this._redirectTo({ url, ...options });
