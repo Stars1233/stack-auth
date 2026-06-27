@@ -187,6 +187,21 @@ function RdeProjectsListPage() {
 
   return (
     <div className="flex-grow p-4">
+      <div className="mb-5 space-y-2">
+        <Typography type="h2" className="text-xl font-semibold tracking-tight">
+          Local config files
+        </Typography>
+        <Typography variant="secondary" className="text-sm">
+          You&apos;re running the local Hexclave dashboard. Open any of these config files to manage that local project.
+        </Typography>
+        <Typography variant="secondary" className="text-sm">
+          To open a new config file, run <code>npx @hexclave/cli dev --config-file &lt;config-path&gt; -- &lt;your-dev-command&gt;</code>.
+        </Typography>
+        <Typography variant="secondary" className="text-sm">
+          Once you are ready to go to production, you can link your config file to Hexclave&apos;s <Link className="underline" target="_blank" href="https://app.hexclave.com">cloud dashboard</Link>.
+        </Typography>
+      </div>
+
       <div className="mb-4">
         <SearchBar
           placeholder="Search config file path"
