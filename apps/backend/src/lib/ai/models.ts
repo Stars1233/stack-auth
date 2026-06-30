@@ -34,7 +34,7 @@ const MODEL_SELECTION_MATRIX: Record<
     },
     fast: {
       authenticated: { modelId: "openai/gpt-5.5" },
-      unauthenticated: { modelId: "google/gemini-3.5-flash" },
+      unauthenticated: { modelId: "z-ai/glm-5:nitro" },
     },
   },
   smartest: {
@@ -44,7 +44,7 @@ const MODEL_SELECTION_MATRIX: Record<
     },
     fast: {
       authenticated: { modelId: "openai/gpt-5.5" },
-      unauthenticated: { modelId: "google/gemini-3.5-flash" },
+      unauthenticated: { modelId: "z-ai/glm-5.2:nitro" },
     },
   },
 };
